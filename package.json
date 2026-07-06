@@ -1,0 +1,13 @@
+{
+  "name": "veerappur-portal",
+  "version": "1.0.0",
+  "description": "Veerappur Digital Seva Portal Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}
