@@ -1165,7 +1165,7 @@ function HomePage({ setPage, t, language, db, saveState }) {
             <section className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                 <div className="bg-stone-light/50 border border-gold/20 p-4 rounded text-center shadow-gold">
                     <span className="text-2xl sm:text-3xl font-bold font-mono text-gold block">
-                        {db.visitorCount ? `${db.visitorCount}+` : "1,540+"}
+                        {db.visitorCount || "0"}
                     </span>
                     <span className="text-slate-400 text-xs sm:text-sm font-tamil mt-1 block">
                         {language === 'ta' ? "இணையதள பார்வையாளர்கள்" : "Website Visitors"}
@@ -1173,7 +1173,7 @@ function HomePage({ setPage, t, language, db, saveState }) {
                 </div>
                 <div className="bg-stone-light/50 border border-gold/20 p-4 rounded text-center shadow-gold">
                     <span className="text-2xl sm:text-3xl font-bold font-mono text-gold block">
-                        {db.bookings ? `${db.bookings.length + 420}+` : "420+"}
+                        {db.bookings ? `${db.bookings.length}` : "0"}
                     </span>
                     <span className="text-slate-400 text-xs sm:text-sm font-tamil mt-1 block">
                         {language === 'ta' ? "சேவைகள் பெற்ற பக்தர்கள்" : "Devotees Served"}
