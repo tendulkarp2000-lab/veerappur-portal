@@ -107,7 +107,8 @@ if (process.env.DATABASE_URL) {
         const { parse } = require('pg-connection-string');
         const dbConfig = parse(process.env.DATABASE_URL);
         dbConfig.ssl = {
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            servername: dbConfig.host
         };
         pgPool = new Pool(dbConfig);
         
@@ -226,7 +227,8 @@ const server = http.createServer(async (req, res) => {
         const { parse } = require('pg-connection-string');
         const dbConfig = parse(process.env.DATABASE_URL);
         dbConfig.ssl = {
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            servername: dbConfig.host
         };
         const testPool = new Pool(dbConfig);
         
