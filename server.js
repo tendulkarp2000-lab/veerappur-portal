@@ -221,6 +221,11 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
+    // Set search engine disallow headers for API endpoints
+    if (pathname.startsWith('/api/')) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     // API: Diagnostical email test endpoint
     if (pathname === '/api/test-email' && req.method === 'GET') {
         const { RESEND_API_KEY, ADMIN_EMAIL } = process.env;
