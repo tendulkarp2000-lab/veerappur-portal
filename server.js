@@ -517,17 +517,14 @@ async function sendBookingEmailNotification(booking) {
     
     try {
         const nodemailer = require('nodemailer');
-        const transportConfig = {};
-        if (SMTP_HOST && SMTP_HOST.includes('gmail')) {
-            transportConfig.service = 'gmail';
-        } else {
-            transportConfig.host = SMTP_HOST;
-            transportConfig.port = parseInt(SMTP_PORT) || 587;
-            transportConfig.secure = parseInt(SMTP_PORT) === 465;
-        }
-        transportConfig.auth = {
-            user: SMTP_USER,
-            pass: SMTP_PASS
+        const transportConfig = {
+            host: SMTP_HOST || 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: SMTP_USER,
+                pass: SMTP_PASS
+            }
         };
         const transporter = nodemailer.createTransport(transportConfig);
         
