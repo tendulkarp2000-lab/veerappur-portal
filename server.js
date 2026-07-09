@@ -308,6 +308,21 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // API: Increment visitor counter
+    if (pathname === '/api/increment-visitors' && req.method === 'POST') {
+        try {
+            const db = await readDB();
+            db.visitorCount = (db.visitorCount || 1540) + 1;
+            await writeDB(db);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, visitorCount: db.visitorCount }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+        return;
+    }
+
     // API: Get entire state
     if (pathname === '/api/db' && req.method === 'GET') {
         const db = await readDB();
