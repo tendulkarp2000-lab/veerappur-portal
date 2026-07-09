@@ -312,7 +312,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/increment-visitors' && req.method === 'POST') {
         try {
             const db = await readDB();
-            db.visitorCount = (db.visitorCount || 1540) + 1;
+            db.visitorCount = (db.visitorCount || 0) + 1;
             await writeDB(db);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true, visitorCount: db.visitorCount }));
