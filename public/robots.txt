@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin
+Disallow: /api/db/save
+Disallow: /api/db
+Disallow: /api/increment-visitors
+Disallow: /api/test-db
+Disallow: /api/test-email
+
+Sitemap: https://veerappurtempleofficial.in/sitemap.xml
