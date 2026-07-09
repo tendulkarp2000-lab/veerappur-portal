@@ -517,15 +517,19 @@ async function sendBookingEmailNotification(booking) {
     
     try {
         const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-            host: SMTP_HOST,
-            port: parseInt(SMTP_PORT) || 587,
-            secure: parseInt(SMTP_PORT) === 465,
-            auth: {
-                user: SMTP_USER,
-                pass: SMTP_PASS
-            }
-        });
+        const transportConfig = {};
+        if (SMTP_HOST && SMTP_HOST.includes('gmail')) {
+            transportConfig.service = 'gmail';
+        } else {
+            transportConfig.host = SMTP_HOST;
+            transportConfig.port = parseInt(SMTP_PORT) || 587;
+            transportConfig.secure = parseInt(SMTP_PORT) === 465;
+        }
+        transportConfig.auth = {
+            user: SMTP_USER,
+            pass: SMTP_PASS
+        };
+        const transporter = nodemailer.createTransport(transportConfig);
         
         let detailsText = '';
         if (booking.details.roomOption) detailsText = `விடுதி: ${booking.details.roomOption}`;
