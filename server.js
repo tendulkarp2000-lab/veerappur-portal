@@ -220,6 +220,41 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
+    // API: Diagnostical database test endpoint
+    if (pathname === '/api/test-db' && req.method === 'GET') {
+        const { Pool } = require('pg');
+        const testPool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        });
+        
+        try {
+            console.log("Testing DB from API...");
+            const dbRes = await testPool.query("SELECT NOW()");
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ 
+                success: true, 
+                message: "Successfully connected to PostgreSQL database!",
+                serverTime: dbRes.rows[0].now,
+                envUrlParsed: process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ":****@") : null
+            }));
+        } catch (err) {
+            console.error("Diagnostic DB connection failed:", err);
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: "PostgreSQL Connection Failed!",
+                errorName: err.name,
+                errorMessage: err.message,
+                errorStack: err.stack,
+                envUrlParsed: process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ":****@") : null
+            }));
+        } finally {
+            await testPool.end();
+        }
+        return;
+    }
+
     // API: Get entire state
     if (pathname === '/api/db' && req.method === 'GET') {
         const db = await readDB();
