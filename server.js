@@ -225,7 +225,12 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/')) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     }
-
+    // Redirect browser navigations targeting API endpoints to the homepage
+    if (pathname.startsWith('/api/') && req.headers.accept && req.headers.accept.includes('text/html')) {
+        res.writeHead(302, { 'Location': '/' });
+        res.end();
+        return;
+    }
     // API: Diagnostical email test endpoint
     if (pathname === '/api/test-email' && req.method === 'GET') {
         const { RESEND_API_KEY, ADMIN_EMAIL } = process.env;
