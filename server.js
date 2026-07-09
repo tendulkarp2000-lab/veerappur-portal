@@ -221,6 +221,65 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
+    // API: Diagnostical email test endpoint
+    if (pathname === '/api/test-email' && req.method === 'GET') {
+        const nodemailer = require('nodemailer');
+        const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
+        
+        console.log("Starting diagnostic email test...");
+        console.log(`SMTP Settings: Host=${SMTP_HOST}, Port=${SMTP_PORT}, User=${SMTP_USER}, Recipient=${ADMIN_EMAIL}`);
+        
+        const transportConfig = {
+            host: SMTP_HOST || 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: SMTP_USER,
+                pass: SMTP_PASS
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000
+        };
+        
+        try {
+            const transporter = nodemailer.createTransport(transportConfig);
+            console.log("Verifying transporter connection...");
+            await transporter.verify();
+            console.log("Transporter verification successful! Sending test email...");
+            
+            const mailOptions = {
+                from: `"Veerappur Temple Diagnostics" <${SMTP_USER}>`,
+                to: ADMIN_EMAIL,
+                subject: `🛕 Test Email Alert from Veerappur Portal`,
+                text: `This is a diagnostic test email to verify that your email settings are working successfully!`
+            };
+            
+            const info = await transporter.sendMail(mailOptions);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ 
+                success: true, 
+                message: "Email sent successfully!", 
+                messageId: info.messageId,
+                response: info.response
+            }));
+        } catch (err) {
+            console.error("Diagnostic email test failed:", err);
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: "Email connection failed!",
+                errorName: err.name,
+                errorMessage: err.message,
+                errorStack: err.stack
+            }));
+        }
+        return;
+    }
+
     // API: Diagnostical database test endpoint
     if (pathname === '/api/test-db' && req.method === 'GET') {
         const { Pool } = require('pg');
