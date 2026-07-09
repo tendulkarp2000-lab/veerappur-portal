@@ -99,60 +99,62 @@ const seedData = {
     }
 };
 
-// PostgreSQL Client configuration for 100% Free Ephemeral cloud hosting (like Render)
-let pgClient = null;
+// PostgreSQL Pool configuration for 100% Free Ephemeral cloud hosting (like Render)
+let pgPool = null;
 if (process.env.DATABASE_URL) {
     try {
-        const { Client } = require('pg');
-        pgClient = new Client({
+        const { Pool } = require('pg');
+        pgPool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: {
                 rejectUnauthorized: false
             }
         });
-        pgClient.connect()
+        
+        // Test connection and initialize tables
+        pgPool.query("SELECT NOW()")
             .then(async () => {
-                console.log("Connected to PostgreSQL Database successfully!");
+                console.log("Connected to PostgreSQL Database via Pool successfully!");
                 // Ensure tables exist
-                await pgClient.query(`
+                await pgPool.query(`
                     CREATE TABLE IF NOT EXISTS temple_db (
                         id int PRIMARY KEY,
                         data jsonb
                     );
                 `);
-                await pgClient.query(`
+                await pgPool.query(`
                     CREATE TABLE IF NOT EXISTS temple_uploads (
                         name text PRIMARY KEY,
                         data text
                     );
                 `);
                 // Seed data if missing
-                const checkRes = await pgClient.query("SELECT id FROM temple_db WHERE id = 1");
+                const checkRes = await pgPool.query("SELECT id FROM temple_db WHERE id = 1");
                 if (checkRes.rows.length === 0) {
                     console.log("Seeding initial data into PostgreSQL...");
-                    await pgClient.query("INSERT INTO temple_db (id, data) VALUES (1, $1)", [JSON.stringify(seedData)]);
+                    await pgPool.query("INSERT INTO temple_db (id, data) VALUES (1, $1)", [JSON.stringify(seedData)]);
                 }
             })
             .catch(err => {
                 console.error("PostgreSQL connection error, falling back to local file DB", err);
-                pgClient = null;
+                pgPool = null;
             });
     } catch (e) {
         console.error("Failed to load PostgreSQL module, falling back to local file DB", e);
-        pgClient = null;
+        pgPool = null;
     }
 }
 
 // Ensure local db.json exists if not using PG
-if (!pgClient && !fs.existsSync(DB_PATH)) {
+if (!pgPool && !fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify(seedData, null, 4));
 }
 
 // Read database file (asynchronous)
 async function readDB() {
-    if (pgClient) {
+    if (pgPool) {
         try {
-            const res = await pgClient.query("SELECT data FROM temple_db WHERE id = 1");
+            const res = await pgPool.query("SELECT data FROM temple_db WHERE id = 1");
             if (res.rows.length > 0) {
                 return res.rows[0].data;
             }
@@ -171,9 +173,9 @@ async function readDB() {
 
 // Write to database file (asynchronous)
 async function writeDB(data) {
-    if (pgClient) {
+    if (pgPool) {
         try {
-            await pgClient.query("UPDATE temple_db SET data = $1 WHERE id = 1", [JSON.stringify(data)]);
+            await pgPool.query("UPDATE temple_db SET data = $1 WHERE id = 1", [JSON.stringify(data)]);
             return true;
         } catch (e) {
             console.error("Error writing to PostgreSQL database", e);
@@ -233,6 +235,28 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             try {
                 const newData = JSON.parse(body);
+                const oldData = await readDB();
+                
+                // Detect new bookings to trigger email alert
+                const newBookings = [];
+                if (oldData && oldData.bookings && newData && newData.bookings) {
+                    const oldIds = new Set(oldData.bookings.map(b => b.id));
+                    for (const b of newData.bookings) {
+                        if (!oldIds.has(b.id)) {
+                            newBookings.push(b);
+                        }
+                    }
+                }
+                
+                // If there are new bookings, send emails in background
+                if (newBookings.length > 0) {
+                    for (const booking of newBookings) {
+                        sendBookingEmailNotification(booking).catch(err => {
+                            console.error("Failed to send booking email notification:", err);
+                        });
+                    }
+                }
+                
                 const success = await writeDB(newData);
                 res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success }));
@@ -369,9 +393,9 @@ const server = http.createServer(async (req, res) => {
                 const fileExt = path.extname(payload.name) || '.png';
                 const filename = `uploaded_${Date.now()}${fileExt}`;
 
-                if (pgClient) {
+                if (pgPool) {
                     // Save to PG Database table
-                    await pgClient.query("INSERT INTO temple_uploads (name, data) VALUES ($1, $2)", [filename, payload.data]);
+                    await pgPool.query("INSERT INTO temple_uploads (name, data) VALUES ($1, $2)", [filename, payload.data]);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ filePath: `/uploads/${filename}` }));
                 } else {
@@ -396,8 +420,8 @@ const server = http.createServer(async (req, res) => {
     // Serve uploads separately if requested
     if (pathname.startsWith('/uploads/')) {
         const filename = pathname.split('/').pop();
-        if (pgClient) {
-            pgClient.query("SELECT data FROM temple_uploads WHERE name = $1", [filename])
+        if (pgPool) {
+            pgPool.query("SELECT data FROM temple_uploads WHERE name = $1", [filename])
                 .then(result => {
                     if (result.rows.length > 0) {
                         const base64Data = result.rows[0].data;
@@ -481,6 +505,99 @@ const server = http.createServer(async (req, res) => {
         }
     });
 });
+// Helper to send email alerts for new bookings using SMTP
+async function sendBookingEmailNotification(booking) {
+    console.log("Processing email alert for booking request:", booking.id);
+    
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
+    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !ADMIN_EMAIL) {
+        console.log("SMTP Environment variables are not set. Skipping email send (falling back to mock console output).");
+        return;
+    }
+    
+    try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: SMTP_HOST,
+            port: parseInt(SMTP_PORT) || 587,
+            secure: parseInt(SMTP_PORT) === 465,
+            auth: {
+                user: SMTP_USER,
+                pass: SMTP_PASS
+            }
+        });
+        
+        let detailsText = '';
+        if (booking.details.roomOption) detailsText = `விடுதி: ${booking.details.roomOption}`;
+        else if (booking.details.offeringServices) detailsText = `சேவைகள்: ${booking.details.offeringServices.join(', ')}`;
+        else if (booking.details.vehicle) detailsText = `வாகனம்: ${booking.details.vehicle} (${booking.details.pickupType})`;
+        else if (booking.details.guideLanguage) detailsText = `கைடு மொழி: ${booking.details.guideLanguage}`;
+        else if (booking.details.nakshatram) detailsText = `அர்ச்சனை: ${booking.details.nakshatram} (${booking.details.rasi}) - முகவரி: ${booking.details.deliveryAddress}`;
+        
+        const mailOptions = {
+            from: `"Veerappur Temple Digital Seva" <${SMTP_USER}>`,
+            to: ADMIN_EMAIL,
+            subject: `🔔 புதிய பக்தி சேவை முன்பதிவு: ${booking.name}`,
+            text: `வீரப்பூர் திருக்கோவில் இணையதளத்தில் புதிய முன்பதிவு கோரிக்கை வந்துள்ளது!
+            
+விவரங்கள்:
+----------------------------------
+பக்தர் பெயர்: ${booking.name}
+போன் எண்: ${booking.phone}
+சேவை வகை: ${booking.type}
+முன்பதிவு தேதி: ${booking.date}
+நபர்கள்: ${booking.count}
+கூடுதல் தகவல்கள்: ${detailsText}
+
+நிர்வாகி பேனலில் உள்நுழைந்து இதை அங்கீகரிக்கவும்:
+https://veerappurtempleofficial.in
+`,
+            html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; border: 1px solid #d4af37; padding: 20px; border-radius: 8px; background-color: #800000; color: #ffffff;">
+                <h2 style="color: #ffd700; border-bottom: 2px solid #ffd700; padding-bottom: 10px; margin-top: 0;">🛕 புதிய பக்தி சேவை முன்பதிவு</h2>
+                <p style="font-size: 15px;">வீரப்பூர் திருக்கோவில் இணையதளத்தில் புதிய முன்பதிவு கோரிக்கை சமர்ப்பிக்கப்பட்டுள்ளது.</p>
+                <div style="background-color: #ffffff; color: #1c1c1c; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px 0; font-weight: bold; width: 140px;">பக்தர் பெயர்:</td>
+                            <td style="padding: 8px 0;">${booking.name}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px 0; font-weight: bold;">போன் எண்:</td>
+                            <td style="padding: 8px 0; color: #800000; font-weight: bold;">${booking.phone}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px 0; font-weight: bold;">சேவை வகை:</td>
+                            <td style="padding: 8px 0; text-transform: uppercase; font-size: 11px; background-color: #f7f7f7; padding-left: 5px; border-radius: 4px;">${booking.type}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px 0; font-weight: bold;">முன்பதிவு தேதி:</td>
+                            <td style="padding: 8px 0;">${booking.date}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px 0; font-weight: bold;">நபர்கள்:</td>
+                            <td style="padding: 8px 0;">${booking.count}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold;">விவரங்கள்:</td>
+                            <td style="padding: 8px 0; color: #555;">${detailsText}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div style="margin-top: 25px; text-align: center;">
+                    <a href="https://veerappurtempleofficial.in" style="background-color: #ffd700; color: #800000; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">அட்மின் பேனல் செல்லவும்</a>
+                </div>
+            </div>
+            `
+        };
+        
+        await transporter.sendMail(mailOptions);
+        console.log("Email notification sent successfully to", ADMIN_EMAIL);
+    } catch (err) {
+        console.error("Error sending email notification:", err);
+    }
+}
+
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
