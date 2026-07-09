@@ -223,60 +223,50 @@ const server = http.createServer(async (req, res) => {
 
     // API: Diagnostical email test endpoint
     if (pathname === '/api/test-email' && req.method === 'GET') {
-        const nodemailer = require('nodemailer');
-        const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
+        const { RESEND_API_KEY, ADMIN_EMAIL } = process.env;
         
-        console.log("Starting diagnostic email test...");
-        console.log(`SMTP Settings: Host=${SMTP_HOST}, Port=${SMTP_PORT}, User=${SMTP_USER}, Recipient=${ADMIN_EMAIL}`);
-        
-        const transportConfig = {
-            host: SMTP_HOST || 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: SMTP_USER,
-                pass: SMTP_PASS
-            },
-            tls: {
-                rejectUnauthorized: false
-            },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000
-        };
-        
-        try {
-            const transporter = nodemailer.createTransport(transportConfig);
-            console.log("Verifying transporter connection...");
-            await transporter.verify();
-            console.log("Transporter verification successful! Sending test email...");
-            
-            const mailOptions = {
-                from: `"Veerappur Temple Diagnostics" <${SMTP_USER}>`,
-                to: ADMIN_EMAIL,
-                subject: `🛕 Test Email Alert from Veerappur Portal`,
-                text: `This is a diagnostic test email to verify that your email settings are working successfully!`
-            };
-            
-            const info = await transporter.sendMail(mailOptions);
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ 
-                success: true, 
-                message: "Email sent successfully!", 
-                messageId: info.messageId,
-                response: info.response
-            }));
-        } catch (err) {
-            console.error("Diagnostic email test failed:", err);
-            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({
-                success: false,
-                message: "Email connection failed!",
-                errorName: err.name,
-                errorMessage: err.message,
-                errorStack: err.stack
-            }));
+        console.log("Starting diagnostic email test via Resend...");
+        if (!RESEND_API_KEY || !ADMIN_EMAIL) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: false, message: "RESEND_API_KEY or ADMIN_EMAIL is missing!" }));
+            return;
         }
+
+        const https = require('https');
+        const postData = JSON.stringify({
+            from: 'Veerappur Portal <onboarding@resend.dev>',
+            to: ADMIN_EMAIL,
+            subject: '🛕 Test Email Alert from Veerappur Portal',
+            text: 'This is a diagnostic test email to verify that your Resend email settings are working successfully!'
+        });
+
+        const options = {
+            hostname: 'api.resend.com',
+            path: '/emails',
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const reqPost = https.request(options, (resPost) => {
+            let data = '';
+            resPost.on('data', chunk => data += chunk);
+            resPost.on('end', () => {
+                res.writeHead(resPost.statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(data);
+            });
+        });
+
+        reqPost.on('error', (err) => {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: false, message: err.message }));
+        });
+
+        reqPost.write(postData);
+        reqPost.end();
         return;
     }
 
@@ -608,24 +598,16 @@ const server = http.createServer(async (req, res) => {
 async function sendBookingEmailNotification(booking) {
     console.log("Processing email alert for booking request:", booking.id);
     
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !ADMIN_EMAIL) {
-        console.log("SMTP Environment variables are not set. Skipping email send (falling back to mock console output).");
+    const { RESEND_API_KEY, ADMIN_EMAIL } = process.env;
+    if (!RESEND_API_KEY || !ADMIN_EMAIL) {
+        console.log("Resend API Key or Admin Email is not set. Skipping email send (falling back to mock console output).");
         return;
     }
     
     try {
-        const nodemailer = require('nodemailer');
-        const transportConfig = {
-            host: SMTP_HOST || 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: SMTP_USER,
-                pass: SMTP_PASS
-            }
-        };
-        const transporter = nodemailer.createTransport(transportConfig);
+        const nodemailer = null;
+        const transportConfig = null;
+        const transporter = null;
         
         let detailsText = '';
         if (booking.details.roomOption) detailsText = `விடுதி: ${booking.details.roomOption}`;
@@ -691,10 +673,44 @@ https://veerappurtempleofficial.in
             `
         };
         
-        await transporter.sendMail(mailOptions);
-        console.log("Email notification sent successfully to", ADMIN_EMAIL);
+        const https = require('https');
+        const postData = JSON.stringify({
+            from: 'Veerappur Portal <onboarding@resend.dev>',
+            to: ADMIN_EMAIL,
+            subject: mailOptions.subject,
+            html: mailOptions.html
+        });
+
+        const options = {
+            hostname: 'api.resend.com',
+            path: '/emails',
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        await new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        console.log("Email notification sent successfully to", ADMIN_EMAIL, "via Resend:", data);
+                        resolve();
+                    } else {
+                        reject(new Error(`Resend API status ${res.statusCode}: ${data}`));
+                    }
+                });
+            });
+            req.on('error', reject);
+            req.write(postData);
+            req.end();
+        });
     } catch (err) {
-        console.error("Error sending email notification:", err);
+        console.error("Error sending email notification via Resend:", err.message || err);
     }
 }
 
