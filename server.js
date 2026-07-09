@@ -278,12 +278,13 @@ const server = http.createServer(async (req, res) => {
                 
                 // Detect new bookings to trigger email alert
                 const newBookings = [];
-                if (oldData && oldData.bookings && newData && newData.bookings) {
-                    const oldIds = new Set(oldData.bookings.map(b => b.id));
-                    for (const b of newData.bookings) {
-                        if (!oldIds.has(b.id)) {
-                            newBookings.push(b);
-                        }
+                const oldBookings = (oldData && oldData.bookings) || [];
+                const currentBookings = (newData && newData.bookings) || [];
+                
+                const oldIds = new Set(oldBookings.map(b => b.id));
+                for (const b of currentBookings) {
+                    if (!oldIds.has(b.id)) {
+                        newBookings.push(b);
                     }
                 }
                 
