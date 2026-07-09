@@ -300,6 +300,20 @@ function App() {
 
     useEffect(() => {
         fetchState();
+        
+        // Session visitor counting
+        const hasVisited = sessionStorage.getItem('veerappur_visited');
+        if (!hasVisited) {
+            sessionStorage.setItem('veerappur_visited', 'true');
+            fetch('/api/increment-visitors', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setDb(prev => prev ? { ...prev, visitorCount: data.visitorCount } : prev);
+                    }
+                })
+                .catch(err => console.warn("Failed to increment visitor count:", err));
+        }
     }, []);
 
     const handleStart = () => {
@@ -610,6 +624,33 @@ function HomePage({ setPage, t, language, db, saveState }) {
     const [sliderIndex, setSliderIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [faqOpen, setFaqOpen] = useState(null);
+
+    // Helper to find the next upcoming festival for the homepage countdown
+    const getNextUpcomingFestival = () => {
+        const festivalsList = db.festivals || [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Filter future festivals and sort by date ascending
+        const upcoming = festivalsList
+            .filter(fest => {
+                const festDate = new Date(fest.date);
+                festDate.setHours(0, 0, 0, 0);
+                return festDate >= today;
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+        if (upcoming.length > 0) {
+            return upcoming[0];
+        }
+        return null;
+    };
+
+    const nextFest = getNextUpcomingFestival();
+    const countdownDate = nextFest ? nextFest.date : (db.festivalCountdownDate || "2027-03-02");
+    const countdownTitle = nextFest 
+        ? (language === 'ta' ? `${nextFest.title} துவக்கம் (${countdownDate.substring(0, 4)})` : `${nextFest.title} Start (${countdownDate.substring(0, 4)})`)
+        : (language === 'ta' ? `மாசி பெருந்திருவிழா துவக்கம் (${(db.festivalCountdownDate || "2027").substring(0,4)})` : `Masi Grand Festival Start (${(db.festivalCountdownDate || "2027").substring(0,4)})`);
 
     // Ticking clock for Panchangam
     useEffect(() => {
@@ -1120,6 +1161,42 @@ function HomePage({ setPage, t, language, db, saveState }) {
                 </div>
             </section>
 
+            {/* Stats counter banner */}
+            <section className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                <div className="bg-stone-light/50 border border-gold/20 p-4 rounded text-center shadow-gold">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono text-gold block">
+                        {db.visitorCount ? `${db.visitorCount}+` : "1,540+"}
+                    </span>
+                    <span className="text-slate-400 text-xs sm:text-sm font-tamil mt-1 block">
+                        {language === 'ta' ? "இணையதள பார்வையாளர்கள்" : "Website Visitors"}
+                    </span>
+                </div>
+                <div className="bg-stone-light/50 border border-gold/20 p-4 rounded text-center shadow-gold">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono text-gold block">
+                        {db.bookings ? `${db.bookings.length + 420}+` : "420+"}
+                    </span>
+                    <span className="text-slate-400 text-xs sm:text-sm font-tamil mt-1 block">
+                        {language === 'ta' ? "சேவைகள் பெற்ற பக்தர்கள்" : "Devotees Served"}
+                    </span>
+                </div>
+                <div className="bg-stone-light/50 border border-gold/20 p-4 rounded text-center shadow-gold">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono text-gold block">
+                        100%
+                    </span>
+                    <span className="text-slate-400 text-xs sm:text-sm font-tamil mt-1 block">
+                        {language === 'ta' ? "நம்பகமான சேவை" : "Trusted Service"}
+                    </span>
+                </div>
+                <div className="bg-stone-light/50 border border-gold/20 p-4 rounded text-center shadow-gold">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono text-gold block">
+                        24/7
+                    </span>
+                    <span className="text-slate-400 text-xs sm:text-sm font-tamil mt-1 block">
+                        {language === 'ta' ? "ஆன்லைன் முன்பதிவு" : "Online Bookings"}
+                    </span>
+                </div>
+            </section>
+
             {/* Live Announcements Bulletin Board */}
             <section className="max-w-7xl mx-auto px-4 w-full">
                 <div className="bg-stone-light border border-gold/30 rounded-lg p-6 shadow-gold relative overflow-hidden">
@@ -1158,11 +1235,13 @@ function HomePage({ setPage, t, language, db, saveState }) {
             {/* Upcoming Festival Countdown */}
             <section className="bg-stone-light/40 border-y border-gold/20 py-12">
                 <div className="max-w-7xl mx-auto px-4 text-center space-y-6 flex flex-col items-center">
-                    <span className="text-xs bg-kumkum/30 border border-gold/40 text-gold px-3.5 py-1 rounded-full font-tamil">{language === 'ta' ? "மாசி திருவிழா எஞ்சிய நாட்கள்" : "Masi Festival Countdown"}</span>
+                    <span className="text-xs bg-kumkum/30 border border-gold/40 text-gold px-3.5 py-1 rounded-full font-tamil">
+                        {language === 'ta' ? "அடுத்த திருவிழா எஞ்சிய நாட்கள்" : "Next Festival Countdown"}
+                    </span>
                     <h2 className="text-2xl sm:text-3xl font-bold font-tamil text-gold-gradient">
-                        {language === 'ta' ? `மாசி பெருந்திருவிழா துவக்கம் (${(db.festivalCountdownDate || "2027").substring(0,4)})` : `Masi Grand Festival Start (${(db.festivalCountdownDate || "2027").substring(0,4)})`}
+                        {countdownTitle}
                     </h2>
-                    <FestivalCountdown date={db.festivalCountdownDate || "2027-03-02"} />
+                    <FestivalCountdown date={countdownDate} />
                     <button
                         onClick={() => setPage('festivals')}
                         className="bg-kumkum hover:bg-kumkum-light text-gold border border-gold/40 font-tamil font-bold px-6 py-2 rounded text-sm transition shadow"
@@ -1619,6 +1698,7 @@ function ServicesPage({ t, language, db, saveState }) {
     const [date, setDate] = useState("");
     const [count, setCount] = useState("");
     const [reqs, setReqs] = useState("");
+    const [ooru, setOoru] = useState("");
 
     // Nakshatram & Address for Prasatham Seva
     const [nakshatram, setNakshatram] = useState("");
@@ -1645,6 +1725,7 @@ function ServicesPage({ t, language, db, saveState }) {
     const resetForm = () => {
         setName("");
         setPhone("");
+        setOoru("");
         setDate("");
         setCount("");
         setReqs("");
@@ -1700,6 +1781,7 @@ function ServicesPage({ t, language, db, saveState }) {
             type: requestType,
             name,
             phone,
+            ooru,
             date,
             count: count || "1",
             details,
@@ -1943,6 +2025,18 @@ function ServicesPage({ t, language, db, saveState }) {
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold font-tamil"
                                 placeholder="பெயர்"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 font-tamil text-xs mb-1">தங்கள் ஊர் (Town / Village) *</label>
+                            <input
+                                type="text"
+                                required
+                                value={ooru}
+                                onChange={(e) => setOoru(e.target.value)}
+                                className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold font-tamil"
+                                placeholder="ஊர் / நகரம்"
                             />
                         </div>
 
@@ -2843,6 +2937,11 @@ function AdminPanel({ t, language, db, saveState, adminLoggedIn, setAdminLoggedI
     const [password, setPassword] = useState("");
     const [loginErr, setLoginErr] = useState("");
     const [adminTab, setAdminTab] = useState('bookings');
+
+    // Booking search filters
+    const [filterName, setFilterName] = useState("");
+    const [filterOoru, setFilterOoru] = useState("");
+    const [filterDate, setFilterDate] = useState("");
 
     // Custom management forms state
     const [newNotice, setNewNotice] = useState("");
@@ -3993,60 +4092,110 @@ function AdminPanel({ t, language, db, saveState, adminLoggedIn, setAdminLoggedI
                 )}
 
                 {/* Bookings enquiry moderation table */}
-                {adminTab === 'bookings' && (
-                    <div className="space-y-4">
-                        <h4 className="font-bold text-gold font-tamil mb-4">பக்தர் சேவை முன்பதிவுகள் கோரிக்கை பட்டியல்</h4>
-                        {db.bookings && db.bookings.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-xs sm:text-sm text-slate-300 font-tamil">
-                                    <thead className="bg-stone text-gold border-b border-gold/20">
-                                        <tr>
-                                            <th className="p-3">வகை (Type)</th>
-                                            <th className="p-3">பக்தர் பெயர்</th>
-                                            <th className="p-3">போன் எண்</th>
-                                            <th className="p-3">தேதி</th>
-                                            <th className="p-3">விவரங்கள்</th>
-                                            <th className="p-3">நிலை (Status)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-stone">
-                                        {db.bookings.map((b) => (
-                                            <tr key={b.id} className="hover:bg-stone/30">
-                                                <td className="p-3 capitalize font-bold text-gold">{b.type}</td>
-                                                <td className="p-3 font-semibold">{b.name}</td>
-                                                <td className="p-3 text-gold">{b.phone}</td>
-                                                <td className="p-3">{b.date}</td>
-                                                <td className="p-3 text-slate-400 text-xs">
-                                                    {b.details.roomOption && `விடுதி: ${b.details.roomOption}`}
-                                                    {b.details.offeringServices && `சேவைகள்: ${b.details.offeringServices.join(', ')}`}
-                                                    {b.details.vehicle && `வாகனம்: ${b.details.vehicle} (${b.details.pickupType})`}
-                                                    {b.details.guideLanguage && `வழிகாட்டி மொழி: ${b.details.guideLanguage}`}
-                                                    {b.details.nakshatram && `அர்ச்சனை: ${b.details.nakshatram} (${b.details.rasi}) - முகவரி: ${b.details.deliveryAddress}`}
-                                                </td>
-                                                <td className="p-3">
-                                                    {b.status === 'pending' ? (
-                                                        <div className="flex gap-1.5">
-                                                            <button onClick={() => handleUpdateBookingStatus(b.id, 'approved')} className="bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded text-[10px]">அனுமதி</button>
-                                                            <button onClick={() => handleUpdateBookingStatus(b.id, 'rejected')} className="bg-red-950 hover:bg-red-900 text-gold px-2 py-1 rounded text-[10px]">மறுப்பு</button>
-                                                        </div>
-                                                    ) : (
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold capitalize ${
-                                                            b.status === 'approved' ? 'bg-green-950/40 text-green-500 border border-green-500/30' : 'bg-red-950/40 text-red-500 border border-red-500/30'
-                                                        }`}>
-                                                            {b.status === 'approved' ? 'Approved' : 'Rejected'}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                {adminTab === 'bookings' && (() => {
+                    const filteredBookings = (db.bookings || []).filter(b => {
+                        const matchesName = !filterName || (b.name && b.name.toLowerCase().includes(filterName.toLowerCase()));
+                        const matchesOoru = !filterOoru || (b.ooru && b.ooru.toLowerCase().includes(filterOoru.toLowerCase()));
+                        const matchesDate = !filterDate || (b.date && b.date === filterDate);
+                        return matchesName && matchesOoru && matchesDate;
+                    });
+                    
+                    return (
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-gold font-tamil mb-4">பக்தர் சேவை முன்பதிவுகள் கோரிக்கை பட்டியல்</h4>
+                            
+                            {/* Search Filters Row */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-stone p-4 rounded border border-gold/25 mb-4 text-xs font-tamil">
+                                <div>
+                                    <label className="block text-slate-400 mb-1">பக்தர் பெயர் தேடல் (Search Name)</label>
+                                    <input 
+                                        type="text" 
+                                        value={filterName}
+                                        onChange={e => setFilterName(e.target.value)}
+                                        className="w-full bg-stone-light border border-gold/25 rounded p-2 text-slate-200 focus:outline-none focus:border-gold font-tamil"
+                                        placeholder="பெயர் தேடுக..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-slate-400 mb-1">ஊர் தேடல் (Search Town/Ooru)</label>
+                                    <input 
+                                        type="text" 
+                                        value={filterOoru}
+                                        onChange={e => setFilterOoru(e.target.value)}
+                                        className="w-full bg-stone-light border border-gold/25 rounded p-2 text-slate-200 focus:outline-none focus:border-gold font-tamil"
+                                        placeholder="ஊர் தேடுக..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-slate-400 mb-1">தேதி வடிகட்டி (Filter Date)</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="date" 
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-stone-light border border-gold/25 rounded p-2 text-slate-200 focus:outline-none focus:border-gold"
+                                        />
+                                        {filterDate && (
+                                            <button onClick={() => setFilterDate("")} className="bg-kumkum px-2.5 rounded text-gold hover:bg-kumkum-light font-tamil font-bold">Clear</button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        ) : (
-                            <p className="text-slate-400 font-tamil text-center py-6">கோரிக்கைகள் எதுவும் இல்லை.</p>
-                        )}
-                    </div>
-                )}
+                            
+                            {filteredBookings.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-xs sm:text-sm text-slate-300 font-tamil">
+                                        <thead className="bg-stone text-gold border-b border-gold/20">
+                                            <tr>
+                                                <th className="p-3">வகை (Type)</th>
+                                                <th className="p-3">பக்தர் பெயர்</th>
+                                                <th className="p-3">ஊர் (Ooru)</th>
+                                                <th className="p-3">போன் எண்</th>
+                                                <th className="p-3">தேதி</th>
+                                                <th className="p-3">விவரங்கள்</th>
+                                                <th className="p-3">நிலை (Status)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-stone">
+                                            {filteredBookings.map((b) => (
+                                                <tr key={b.id} className="hover:bg-stone/30">
+                                                    <td className="p-3 capitalize font-bold text-gold">{b.type}</td>
+                                                    <td className="p-3 font-semibold">{b.name}</td>
+                                                    <td className="p-3 text-slate-300 font-medium">{b.ooru || "-"}</td>
+                                                    <td className="p-3 text-gold">{b.phone}</td>
+                                                    <td className="p-3">{b.date}</td>
+                                                    <td className="p-3 text-slate-400 text-xs">
+                                                        {b.details.roomOption && `விடுதி: ${b.details.roomOption}`}
+                                                        {b.details.offeringServices && `சேவைகள்: ${b.details.offeringServices.join(', ')}`}
+                                                        {b.details.vehicle && `வாகனம்: ${b.details.vehicle} (${b.details.pickupType})`}
+                                                        {b.details.guideLanguage && `வழிகாட்டி மொழி: ${b.details.guideLanguage}`}
+                                                        {b.details.nakshatram && `அர்ச்சனை: ${b.details.nakshatram} (${b.details.rasi}) - முகவரி: ${b.details.deliveryAddress}`}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        {b.status === 'pending' ? (
+                                                            <div className="flex gap-1.5">
+                                                                <button onClick={() => handleUpdateBookingStatus(b.id, 'approved')} className="bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded text-[10px]">அனுமதி</button>
+                                                                <button onClick={() => handleUpdateBookingStatus(b.id, 'rejected')} className="bg-red-950 hover:bg-red-900 text-gold px-2 py-1 rounded text-[10px]">மறுப்பு</button>
+                                                            </div>
+                                                        ) : (
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded font-bold capitalize ${
+                                                                b.status === 'approved' ? 'bg-green-950/40 text-green-500 border border-green-500/30' : 'bg-red-950/40 text-red-500 border border-red-500/30'
+                                                            }`}>
+                                                                {b.status === 'approved' ? 'Approved' : 'Rejected'}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-slate-400 font-tamil text-center py-6">கோரிக்கைகள் எதுவும் இல்லை (அல்லது வடிகட்டிக்கு பொருந்தவில்லை).</p>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Hero Slides Management */}
                 {adminTab === 'hero_slider' && (
