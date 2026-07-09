@@ -617,7 +617,7 @@ async function sendBookingEmailNotification(booking) {
         else if (booking.details.nakshatram) detailsText = `அர்ச்சனை: ${booking.details.nakshatram} (${booking.details.rasi}) - முகவரி: ${booking.details.deliveryAddress}`;
         
         const mailOptions = {
-            from: `"Veerappur Temple Digital Seva" <${SMTP_USER}>`,
+            from: "Veerappur Temple Digital Seva <onboarding@resend.dev>",
             to: ADMIN_EMAIL,
             subject: `🔔 புதிய பக்தி சேவை முன்பதிவு: ${booking.name}`,
             text: `வீரப்பூர் திருக்கோவில் இணையதளத்தில் புதிய முன்பதிவு கோரிக்கை வந்துள்ளது!
