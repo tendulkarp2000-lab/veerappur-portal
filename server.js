@@ -104,12 +104,12 @@ let pgPool = null;
 if (process.env.DATABASE_URL) {
     try {
         const { Pool } = require('pg');
-        pgPool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: {
-                rejectUnauthorized: false
-            }
-        });
+        const { parse } = require('pg-connection-string');
+        const dbConfig = parse(process.env.DATABASE_URL);
+        dbConfig.ssl = {
+            rejectUnauthorized: false
+        };
+        pgPool = new Pool(dbConfig);
         
         // Test connection and initialize tables
         pgPool.query("SELECT NOW()")
@@ -223,10 +223,12 @@ const server = http.createServer(async (req, res) => {
     // API: Diagnostical database test endpoint
     if (pathname === '/api/test-db' && req.method === 'GET') {
         const { Pool } = require('pg');
-        const testPool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false }
-        });
+        const { parse } = require('pg-connection-string');
+        const dbConfig = parse(process.env.DATABASE_URL);
+        dbConfig.ssl = {
+            rejectUnauthorized: false
+        };
+        const testPool = new Pool(dbConfig);
         
         try {
             console.log("Testing DB from API...");
