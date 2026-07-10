@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>கோவில் இணையதள அறிவிப்பு பலகை - அச்சிட தகுந்தது</title>
+    <!-- Google Fonts: Mukta Malar (Tamil) & Outfit (English) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mukta+Malar:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* General layout */
+        body {
+            font-family: 'Mukta Malar', 'Outfit', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Printable A4 Container */
+        .notice-container {
+            width: 210mm;
+            height: 297mm;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            border: 15px double #800020; /* Kumkum Red Double Border */
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Corner designs */
+        .corner-accent {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #D4AF37; /* Gold accent */
+        }
+        .top-left { top: 15px; left: 15px; border-right: none; border-bottom: none; }
+        .top-right { top: 15px; right: 15px; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 15px; left: 15px; border-right: none; border-top: none; }
+        .bottom-right { bottom: 15px; right: 15px; border-left: none; border-top: none; }
+
+        /* Header styling */
+        .header-section {
+            text-align: center;
+            width: 100%;
+        }
+
+        .temple-logo-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #D4AF37;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        .temple-name {
+            font-size: 26pt;
+            font-weight: 800;
+            color: #800020;
+            margin: 0 0 5px 0;
+            text-shadow: 1px 1px 2px rgba(128,0,32,0.1);
+        }
+
+        .temple-location {
+            font-size: 14pt;
+            color: #555;
+            margin: 0 0 10px 0;
+            font-weight: 600;
+            border-bottom: 2px dashed #D4AF37;
+            padding-bottom: 12px;
+            display: inline-block;
+            width: 70%;
+        }
+
+        .notice-tag {
+            background-color: #800020;
+            color: #ffffff;
+            padding: 8px 24px;
+            font-size: 14pt;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: inline-block;
+            border: 1px solid #D4AF37;
+        }
+
+        /* Content block */
+        .content-section {
+            text-align: center;
+            margin: 25px 0;
+            padding: 0 20px;
+        }
+
+        .headline {
+            font-size: 20pt;
+            font-weight: 800;
+            color: #111;
+            margin: 0 0 20px 0;
+        }
+
+        .description {
+            font-size: 13pt;
+            line-height: 1.8;
+            color: #333;
+            text-align: justify;
+            margin: 0 auto;
+            max-width: 90%;
+        }
+
+        .features-list {
+            margin: 25px auto;
+            text-align: left;
+            max-width: 80%;
+            font-size: 13pt;
+            color: #333;
+            line-height: 2;
+        }
+
+        .features-list li {
+            margin-bottom: 5px;
+        }
+
+        .features-list strong {
+            color: #800020;
+        }
+
+        /* QR code block */
+        .qr-section {
+            text-align: center;
+            background: #fff;
+            padding: 20px;
+            border: 2px solid #D4AF37;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(212, 175, 55, 0.15);
+            margin: 15px 0;
+        }
+
+        .qr-image {
+            width: 200px;
+            height: 200px;
+            display: block;
+            margin: 0 auto 10px auto;
+        }
+
+        .qr-label {
+            font-size: 12pt;
+            font-weight: 700;
+            color: #800020;
+            margin: 0;
+        }
+
+        /* Footer links */
+        .footer-section {
+            text-align: center;
+            width: 100%;
+            border-top: 2px dashed #D4AF37;
+            padding-top: 20px;
+        }
+
+        .web-url {
+            font-size: 20pt;
+            font-weight: 800;
+            color: #800020;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .contact-info {
+            font-size: 11pt;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Action button to print */
+        .no-print {
+            margin-bottom: 20px;
+            background-color: #800020;
+            color: #fff;
+            border: 2px solid #D4AF37;
+            padding: 12px 30px;
+            font-size: 12pt;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+        }
+        .no-print:hover {
+            background-color: #9e1b32;
+            transform: translateY(-2px);
+        }
+
+        /* Print Media queries */
+        @media print {
+            body {
+                background-color: #ffffff;
+                padding: 0;
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .notice-container {
+                box-shadow: none;
+                margin: 0;
+                width: 210mm;
+                height: 297mm;
+                border: 15px double #800020;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Printable Trigger Button -->
+    <button class="no-print" onclick="window.print()">🖨️ பிரிண்ட் செய்க (Print A4 Notice)</button>
+
+    <!-- Notice A4 Container -->
+    <div class="notice-container">
+        <!-- Golden Corner Accents -->
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent top-right"></div>
+        <div class="corner-accent bottom-left"></div>
+        <div class="corner-accent bottom-right"></div>
+
+        <!-- Header -->
+        <div class="header-section">
+            <img class="temple-logo-placeholder" src="assets/images/srpkamn.PNG" alt="Logo">
+            <h1 class="temple-name">ஸ்ரீ பெரியகாண்டி அம்மன் திருக்கோவில்</h1>
+            <h3 class="temple-location">வீரப்பூர், மணப்பாறை வட்டம், திருச்சி மாவட்டம்</h3>
+            <div>
+                <span class="notice-tag">முக்கிய அறிவிப்பு பலகை (Official Notice)</span>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content-section">
+            <div class="headline">பக்தர்களுக்கான புதிய டிஜிட்டல் சேவை தொடக்கம்!</div>
+            <p class="description">
+                நமது வீரப்பூர் திருக்கோவிலுக்கு வருகை தரும் பக்தர்கள் மற்றும் ஆன்மீகப் பெருமக்களின் வசதிக்காக, தங்குமிடங்கள், சிறப்பு அர்ச்சனை சேவைகள் மற்றும் திருவிழா தகவல்களை எளிமையாகப் பெற புதிய அதிகாரப்பூர்வ இணையதளம் தொடங்கப்பட்டுள்ளது.
+            </p>
+            <ul class="features-list">
+                <li>🏠 <strong>தங்குமிடங்கள் முன்பதிவு (Room Bookings)</strong></li>
+                <li>🙏 <strong>சிறப்பு அர்ச்சனை மற்றும் பிரசாதச் சேவைகள்</strong></li>
+                <li>📅 <strong>மாசி திருவிழா மற்றும் பஞ்சாங்கம் பற்றிய விபரங்கள்</strong></li>
+                <li>📞 <strong>உடனடி உதவி மற்றும் வாட்ஸ்அப் (WhatsApp) சேவை</strong></li>
+            </ul>
+        </div>
+
+        <!-- QR Code Block -->
+        <div class="qr-section">
+            <img class="qr-image" src="assets/images/qrcode.png" alt="Website QR Code">
+            <p class="qr-label">இணையதளத்தை அணுக இந்த QR கோடை ஸ்கேன் செய்க!</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-section">
+            <a class="web-url" href="https://veerappurtempleofficial.in" target="_blank">www.veerappurtempleofficial.in</a>
+            <p class="contact-info">மின்னஞ்சல்: veerappurtempleofficial@gmail.com | 24/7 ஆன்லைன் முன்பதிவு வசதி</p>
+        </div>
+    </div>
+
+</body>
+</html>
