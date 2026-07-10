@@ -258,7 +258,8 @@ const Icon = ({ name, className = "w-6 h-6", onClick }) => {
         x: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />,
         plus: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />,
         search: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
-        whatsapp: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.48 2 2 6.48 2 12c0 2.17.7 4.19 1.94 5.86L2.68 22l4.31-1.12C8.52 21.57 10.21 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-1.85 14.88c-1.57-1.57-2.31-3.66-2.07-5.01l1.52.26c-.16.92.36 2.37 1.45 3.46 1.09 1.09 2.54 1.61 3.46 1.45l.26 1.52c-1.35.24-3.44-.5-5.01-2.07z" />
+        whatsapp: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.48 2 2 6.48 2 12c0 2.17.7 4.19 1.94 5.86L2.68 22l4.31-1.12C8.52 21.57 10.21 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-1.85 14.88c-1.57-1.57-2.31-3.66-2.07-5.01l1.52.26c-.16.92.36 2.37 1.45 3.46 1.09 1.09 2.54 1.61 3.46 1.45l.26 1.52c-1.35.24-3.44-.5-5.01-2.07z" />,
+        mail: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
     };
 
     return (
@@ -542,10 +543,10 @@ function App() {
             )}
 
             {/* Header / Navbar */}
-            <header className="sticky top-0 z-40 bg-stone-dark/95 border-b border-gold/30 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => setPage('home')}>
-                        <div className="w-12 h-12 rounded-full border border-gold bg-stone flex items-center justify-center shadow-gold overflow-hidden">
+            <header className="sticky top-0 z-40 bg-stone-dark/95 border-b border-gold/30 backdrop-blur-md shadow-lg">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-24 flex items-center justify-between">
+                    <div className="flex items-center gap-3 cursor-pointer select-none group" onClick={() => setPage('home')}>
+                        <div className="w-13 h-13 rounded-full border border-gold bg-stone flex items-center justify-center shadow-gold overflow-hidden transition-all duration-300 group-hover:scale-105">
                             <img 
                                 src={db.logoUrl || "/assets/images/srpkamn.PNG"} 
                                 alt="Temple Logo" 
@@ -557,18 +558,20 @@ function App() {
                             />
                         </div>
                         <div>
-                            <h1 className="text-base sm:text-lg font-bold font-tamil text-gold-gradient tracking-wide">{t.title}</h1>
-                            <p className="text-xs text-turmeric/80 font-tamil tracking-widest">{t.subtitle}</p>
+                            <h1 className="text-base xl:text-lg font-bold font-tamil text-gold-gradient tracking-wide group-hover:text-gold transition-colors duration-300">{t.title}</h1>
+                            <p className="text-[10px] xl:text-[11px] text-turmeric/80 font-tamil tracking-widest leading-none mt-0.5">{t.subtitle}</p>
                         </div>
                     </div>
 
-                    <nav className="hidden lg:flex items-center gap-6">
+                    <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3">
                         {['home', 'history', 'deities', 'festivals', 'services', 'helpdesk', 'gallery'].map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
-                                className={`text-sm font-medium transition-all duration-300 font-tamil hover:text-gold ${
-                                    page === p ? 'text-gold border-b-2 border-gold pb-1' : 'text-slate-300'
+                                className={`text-xs xl:text-sm font-semibold transition-all duration-300 font-tamil px-2.5 py-1.5 rounded-md hover:bg-gold/10 hover:text-gold ${
+                                    page === p 
+                                        ? 'text-gold bg-gold/5 border border-gold/25' 
+                                        : 'text-slate-300 border border-transparent'
                                 }`}
                             >
                                 {t[p]}
@@ -576,16 +579,16 @@ function App() {
                         ))}
                     </nav>
 
-                    <div className="hidden lg:flex items-center gap-4">
+                    <div className="hidden lg:flex items-center gap-3.5">
                         <button
                             onClick={toggleLanguage}
-                            className="text-xs border border-gold/50 text-gold hover:bg-gold hover:text-stone-dark px-3 py-1 rounded-full transition-all duration-300"
+                            className="text-xs font-semibold border border-gold/50 text-gold hover:bg-gold hover:text-stone-dark px-3 py-1.5 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-gold/25"
                         >
                             {t.languageLabel}
                         </button>
                         <button
                             onClick={() => setPage('admin')}
-                            className="bg-kumkum hover:bg-kumkum-light text-gold font-bold text-xs py-2 px-4 rounded-md border border-gold/40 transition shadow-kumkum"
+                            className="bg-kumkum hover:bg-kumkum-light text-gold font-bold text-xs py-2.5 px-4 rounded-md border border-gold/45 transition-all duration-300 shadow-md hover:shadow-gold/10 hover:scale-105 active:scale-95"
                         >
                             {adminLoggedIn ? "Dashboard" : "Admin Panel"}
                         </button>
@@ -700,6 +703,9 @@ function App() {
                             </div>
                             <div className="text-xs text-gold/70 flex items-center gap-1.5 font-tamil">
                                 <Icon name="whatsapp" className="w-4 h-4 text-green-500" /> Virtual Virtual-Line Seva Support
+                            </div>
+                            <div className="text-xs text-gold/70 flex items-center gap-1.5 font-tamil select-all">
+                                <Icon name="mail" className="w-4 h-4 text-gold" /> veerappurtempleofficial@gmail.com
                             </div>
                         </div>
                     </div>
@@ -942,7 +948,7 @@ function HomePage({ setPage, t, language, db, saveState }) {
         if (slides.length <= 1) return;
         const interval = setInterval(() => {
             setSliderIndex(prev => (prev + 1) % slides.length);
-        }, 5000);
+        }, 10000);
         return () => clearInterval(interval);
     }, [slides.length]);
 
