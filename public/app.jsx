@@ -389,10 +389,10 @@ function App() {
             )}
 
             {/* Header / Navbar */}
-            <header className="sticky top-0 z-40 bg-stone-dark/95 border-b border-gold/30 backdrop-blur-md shadow-lg">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-24 flex items-center justify-between">
-                    <div className="flex items-center gap-3 cursor-pointer select-none group" onClick={() => setPage('home')}>
-                        <div className="w-13 h-13 rounded-full border border-gold bg-stone flex items-center justify-center shadow-gold overflow-hidden transition-all duration-300 group-hover:scale-105">
+            <header className="sticky top-0 z-40 bg-stone-dark/95 border-b border-gold/30 backdrop-blur-md">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => setPage('home')}>
+                        <div className="w-12 h-12 rounded-full border border-gold bg-stone flex items-center justify-center shadow-gold overflow-hidden">
                             <img 
                                 src={db.logoUrl || "/assets/images/srpkamn.PNG"} 
                                 alt="Temple Logo" 
@@ -404,20 +404,18 @@ function App() {
                             />
                         </div>
                         <div>
-                            <h1 className="text-base xl:text-lg font-bold font-tamil text-gold-gradient tracking-wide group-hover:text-gold transition-colors duration-300">{t.title}</h1>
-                            <p className="text-[10px] xl:text-[11px] text-turmeric/80 font-tamil tracking-widest leading-none mt-0.5">{t.subtitle}</p>
+                            <h1 className="text-base sm:text-lg font-bold font-tamil text-gold-gradient tracking-wide">{t.title}</h1>
+                            <p className="text-xs text-turmeric/80 font-tamil tracking-widest">{t.subtitle}</p>
                         </div>
                     </div>
 
-                    <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3">
+                    <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
                         {['home', 'history', 'deities', 'festivals', 'services', 'helpdesk', 'gallery'].map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
-                                className={`text-xs xl:text-sm font-semibold transition-all duration-300 font-tamil px-2.5 py-1.5 rounded-md hover:bg-gold/10 hover:text-gold ${
-                                    page === p 
-                                        ? 'text-gold bg-gold/5 border border-gold/25' 
-                                        : 'text-slate-300 border border-transparent'
+                                className={`text-sm font-medium transition-all duration-300 font-tamil pb-1 border-b-2 ${
+                                    page === p ? 'text-gold border-gold' : 'text-slate-300 border-transparent hover:text-gold'
                                 }`}
                             >
                                 {t[p]}
@@ -425,16 +423,16 @@ function App() {
                         ))}
                     </nav>
 
-                    <div className="hidden lg:flex items-center gap-3.5">
+                    <div className="hidden lg:flex items-center gap-4">
                         <button
                             onClick={toggleLanguage}
-                            className="text-xs font-semibold border border-gold/50 text-gold hover:bg-gold hover:text-stone-dark px-3 py-1.5 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-gold/25"
+                            className="text-xs border border-gold/50 text-gold hover:bg-gold hover:text-stone-dark px-3 py-1 rounded-full transition-all duration-300"
                         >
                             {t.languageLabel}
                         </button>
                         <button
                             onClick={() => setPage('admin')}
-                            className="bg-kumkum hover:bg-kumkum-light text-gold font-bold text-xs py-2.5 px-4 rounded-md border border-gold/45 transition-all duration-300 shadow-md hover:shadow-gold/10 hover:scale-105 active:scale-95"
+                            className="bg-kumkum hover:bg-kumkum-light text-gold font-bold text-xs py-2 px-4 rounded-md border border-gold/40 transition shadow-kumkum"
                         >
                             {adminLoggedIn ? "Dashboard" : "Admin Panel"}
                         </button>
