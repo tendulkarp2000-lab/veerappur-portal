@@ -120,7 +120,15 @@ const Icon = ({ name, className = "w-6 h-6", onClick }) => {
 // ----------------------------------------------------
 function App() {
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState('home');
+    const getInitialPage = () => {
+        if (typeof window !== 'undefined') {
+            if (window.location.search.includes('admin=true') || window.location.pathname === '/admin') {
+                return 'admin';
+            }
+        }
+        return 'home';
+    };
+    const [page, setPage] = useState(getInitialPage());
     const [language, setLanguage] = useState('ta');
     const [db, setDb] = useState(null);
     const [adminLoggedIn, setAdminLoggedIn] = useState(false);
@@ -399,6 +407,47 @@ function App() {
     const toggleLanguage = () => {
         setLanguage(prev => prev === 'ta' ? 'en' : 'ta');
     };
+
+    if (db && db.maintenanceMode && page !== 'admin') {
+        return (
+            <div className="min-h-screen bg-stone-dark text-slate-100 flex flex-col items-center justify-center p-6 selection:bg-gold selection:text-stone-dark">
+                <div className="max-w-md w-full bg-stone border border-gold/30 rounded-xl p-8 text-center shadow-gold space-y-6">
+                    <div className="w-20 h-20 mx-auto rounded-full border border-gold bg-stone flex items-center justify-center shadow-gold overflow-hidden">
+                        <img 
+                            src={db.logoUrl || "/assets/images/srpkamn.PNG"} 
+                            alt="Temple Logo" 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/assets/images/srpkamn.PNG";
+                            }}
+                        />
+                    </div>
+                    
+                    <h2 className="text-xl sm:text-2xl font-bold font-tamil text-gold-gradient tracking-wide">ஸ்ரீ பெரியகாண்டி அம்மன் திருக்கோவில்</h2>
+                    <p className="text-xs text-turmeric/80 font-tamil tracking-widest leading-none">வீரப்பூர் அதிகாரப்பூர்வ இணையதளம்</p>
+                    
+                    <div className="border-t border-b border-stone-light py-6 my-4 space-y-4">
+                        <span className="inline-block bg-kumkum/40 border border-gold/40 text-gold text-xs px-3.5 py-1 rounded-full font-tamil font-bold animate-pulse">
+                            Closed Now / தற்காலிகமாக மூடப்பட்டுள்ளது
+                        </span>
+                        
+                        <p className="text-slate-300 font-tamil text-sm leading-relaxed text-justify">
+                            திருக்கோவிலின் தற்காலிக சூழ்நிலை காரணமாக, இணையதள முன்பதிவு மற்றும் ஆன்லைன் சேவைகள் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது. விரைவில் சேவைகள் மீண்டும் தொடங்கப்படும். பக்தர்கள் ஒத்துழைக்க வேண்டுகிறோம்!
+                        </p>
+                        
+                        <p className="text-slate-400 font-tamil text-xs leading-relaxed">
+                            Due to temporary local circumstances, our digital services are temporarily suspended. We appreciate your patience and will resume shortly.
+                        </p>
+                    </div>
+                    
+                    <div className="text-xs text-slate-500 font-tamil">
+                        மின்னஞ்சல்: veerappurtempleofficial@gmail.com
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex flex-col justify-between text-slate-100 selection:bg-kumkum selection:text-gold">
@@ -3075,6 +3124,7 @@ function AdminPanel({ t, language, db, saveState, adminLoggedIn, setAdminLoggedI
     const [igLinkInput, setIgLinkInput] = useState("");
     const [logoBase64, setLogoBase64] = useState("");
     const [logoFileObj, setLogoFileObj] = useState(null);
+    const [maintenanceModeInput, setMaintenanceModeInput] = useState(false);
 
     // Sync settings inputs when db loads
     useEffect(() => {
@@ -3083,6 +3133,7 @@ function AdminPanel({ t, language, db, saveState, adminLoggedIn, setAdminLoggedI
             setYtLinkInput(db.socialLinks && db.socialLinks.youtube || "");
             setIgLinkInput(db.socialLinks && db.socialLinks.instagram || "");
             setLogoBase64(db.logoUrl || "");
+            setMaintenanceModeInput(db.maintenanceMode || false);
         }
     }, [db]);
     
@@ -3397,6 +3448,7 @@ function AdminPanel({ t, language, db, saveState, adminLoggedIn, setAdminLoggedI
         const publishSettings = (logoPath) => {
             const updatedDb = { ...db };
             updatedDb.festivalCountdownDate = countdownDateInput;
+            updatedDb.maintenanceMode = maintenanceModeInput;
             updatedDb.socialLinks = {
                 ...updatedDb.socialLinks,
                 youtube: ytLinkInput,
@@ -3948,7 +4000,20 @@ function AdminPanel({ t, language, db, saveState, adminLoggedIn, setAdminLoggedI
                                         onChange={(e) => handleFileChangeHelper(e, setLogoBase64, setLogoFileObj)}
                                         className="w-full bg-stone-light border border-gold/30 rounded p-2 text-slate-400 text-xs"
                                     />
-                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-red-950/20 border border-kumkum/40 p-4.5 rounded-md">
+                                <input
+                                    type="checkbox"
+                                    id="m_mode"
+                                    checked={maintenanceModeInput}
+                                    onChange={(e) => setMaintenanceModeInput(e.target.checked)}
+                                    className="w-4.5 h-4.5 rounded border-gold/30 text-kumkum focus:ring-gold bg-stone cursor-pointer"
+                                />
+                                <label htmlFor="m_mode" className="text-xs text-slate-300 font-tamil cursor-pointer select-none leading-relaxed">
+                                    🚨 <strong className="text-gold">வலைத்தளத்தை தற்காலிகமாக மூடு (Closed Now Mode)</strong>
+                                    <span className="block text-[10px] text-slate-400 mt-1">இதை ஆன் செய்தால் பக்தர்களுக்கு "Closed Now / தற்காலிகமாக மூடப்பட்டுள்ளது" என்ற அறிவிப்புத் திரை மட்டுமே தோன்றும். அட்மின் பேனல் தொடர்ந்து இயங்கும்.</span>
+                                </label>
                             </div>
 
                             <button
