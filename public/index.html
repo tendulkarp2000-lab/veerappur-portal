@@ -469,6 +469,30 @@ function App() {
                 })
                 .catch(err => console.warn("Failed to increment visitor count:", err));
         }
+
+        // Automatic polling for new requests/updates
+        const pollInterval = setInterval(() => {
+            fetch('/api/db')
+                .then(res => res.json())
+                .then(data => {
+                    setDb(prev => {
+                        if (!prev) return data;
+                        // Check if critical arrays or values have changed to minimize re-renders
+                        const bookingsChanged = JSON.stringify(prev.bookings) !== JSON.stringify(data.bookings);
+                        const noticesChanged = JSON.stringify(prev.notices) !== JSON.stringify(data.notices);
+                        const festivalsChanged = JSON.stringify(prev.festivals) !== JSON.stringify(data.festivals);
+                        const galleryChanged = JSON.stringify(prev.gallery) !== JSON.stringify(data.gallery);
+                        
+                        if (bookingsChanged || noticesChanged || festivalsChanged || galleryChanged || prev.visitorCount !== data.visitorCount) {
+                            return data;
+                        }
+                        return prev;
+                    });
+                })
+                .catch(err => console.warn("Polling fetch failed:", err));
+        }, 10000); // 10 seconds
+
+        return () => clearInterval(pollInterval);
     }, []);
 
     const handleStart = () => {
@@ -1858,6 +1882,14 @@ function ServicesPage({ t, language, db, saveState }) {
     const [reqs, setReqs] = useState("");
     const [ooru, setOoru] = useState("");
 
+    // Guide language separation
+    const [guideLanguage, setGuideLanguage] = useState("Tamil");
+
+    // Math Captcha state
+    const [captchaNum1, setCaptchaNum1] = useState(Math.floor(Math.random() * 9) + 1);
+    const [captchaNum2, setCaptchaNum2] = useState(Math.floor(Math.random() * 9) + 1);
+    const [captchaInput, setCaptchaInput] = useState("");
+
     // Nakshatram & Address for Prasatham Seva
     const [nakshatram, setNakshatram] = useState("");
     const [rasi, setRasi] = useState("");
@@ -1887,12 +1919,18 @@ function ServicesPage({ t, language, db, saveState }) {
         setDate("");
         setCount("");
         setReqs("");
+        setGuideLanguage("Tamil");
         setNakshatram("");
         setRasi("");
         setDeliveryAddress("");
         setSelectedServices({
             goat: false, cook: false, utensil: false, oven: false, water: false, shed: false, audio: false, chairTable: false, decor: false
         });
+        
+        // Regenerate captcha
+        setCaptchaNum1(Math.floor(Math.random() * 9) + 1);
+        setCaptchaNum2(Math.floor(Math.random() * 9) + 1);
+        setCaptchaInput("");
     };
 
     const handleRoomSelectChange = (val) => {
@@ -1913,8 +1951,28 @@ function ServicesPage({ t, language, db, saveState }) {
 
     const handleSubmitRequest = (e, requestType) => {
         e.preventDefault();
-        if (!name || !phone || !date) {
-            alert("பெயர், போன் எண் மற்றும் தேதி கட்டாயம் நிரப்பப்பட வேண்டும்.");
+        
+        // Name validation
+        if (!name || name.trim().length < 3) {
+            alert(language === 'ta' ? "பெயர் குறைந்தது 3 எழுத்துக்களைக் கொண்டிருக்க வேண்டும்." : "Name must be at least 3 characters.");
+            return;
+        }
+
+        // Phone validation (10 digits starting with 6,7,8,9)
+        const phoneRegex = /^[6789]\d{9}$/;
+        if (!phone || !phoneRegex.test(phone)) {
+            alert(language === 'ta' ? "சரியான 10 இலக்க போன் எண்ணை உள்ளிடவும் (e.g. 9876543210)." : "Please enter a valid 10-digit mobile number starting with 6-9.");
+            return;
+        }
+
+        // Captcha validation
+        if (parseInt(captchaInput) !== (captchaNum1 + captchaNum2)) {
+            alert(language === 'ta' ? "பாதுகாப்பு விடை தவறானது. மீண்டும் முயற்சிக்கவும்." : "Incorrect security response. Please try again.");
+            return;
+        }
+
+        if (!date) {
+            alert(language === 'ta' ? "தேதி கட்டாயம் நிரப்பப்பட வேண்டும்." : "Date is required.");
             return;
         }
 
@@ -1929,7 +1987,7 @@ function ServicesPage({ t, language, db, saveState }) {
         } else if (requestType === 'transport') {
             details = { vehicle, pickupType };
         } else if (requestType === 'guide') {
-            details = { guideLanguage: reqs || "Tamil" };
+            details = { guideLanguage: guideLanguage || "Tamil" };
         } else if (requestType === 'prasatham') {
             details = { nakshatram, rasi, deliveryAddress };
         }
@@ -2234,6 +2292,20 @@ function ServicesPage({ t, language, db, saveState }) {
                             </div>
                         </div>
 
+                        <div>
+                            <label className="block text-slate-300 font-tamil text-xs mb-1">
+                                {language === 'ta' ? `பாதுகாப்பு கேள்வி: ${captchaNum1} + ${captchaNum2} = ? *` : `Security Question: ${captchaNum1} + ${captchaNum2} = ? *`}
+                            </label>
+                            <input
+                                type="number"
+                                required
+                                value={captchaInput}
+                                onChange={(e) => setCaptchaInput(e.target.value)}
+                                className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold"
+                                placeholder={language === 'ta' ? "பாதுகாப்பு விடையை உள்ளிடவும்" : "Enter security response"}
+                            />
+                        </div>
+
                         {/* Dynamic Rooms Selection */}
                         {tab === 'rooms' && (
                             <div className="space-y-4">
@@ -2272,8 +2344,8 @@ function ServicesPage({ t, language, db, saveState }) {
                             <div>
                                 <label className="block text-slate-300 font-tamil text-xs mb-1">தேவைப்படும் மொழி (Language Needed)</label>
                                 <select
-                                    value={reqs}
-                                    onChange={(e) => setReqs(e.target.value)}
+                                    value={guideLanguage}
+                                    onChange={(e) => setGuideLanguage(e.target.value)}
                                     className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold font-tamil"
                                 >
                                     <option value="Tamil">தமிழ் (Tamil)</option>
@@ -2413,6 +2485,11 @@ function HelpDeskPage({ t, language, db, saveState }) {
     const [subTab, setSubTab] = useState('complaint');
     const [statusMsg, setStatusMsg] = useState("");
 
+    // Math Captcha state for HelpDesk
+    const [captchaNum1, setCaptchaNum1] = useState(Math.floor(Math.random() * 9) + 1);
+    const [captchaNum2, setCaptchaNum2] = useState(Math.floor(Math.random() * 9) + 1);
+    const [captchaInput, setCaptchaInput] = useState("");
+
     // Review inputs
     const [name, setName] = useState("");
     const [place, setPlace] = useState("");
@@ -2468,6 +2545,26 @@ function HelpDeskPage({ t, language, db, saveState }) {
 
     const handleComplaintSubmit = (e) => {
         e.preventDefault();
+        
+        // Name validation
+        if (!name || name.trim().length < 3) {
+            alert(language === 'ta' ? "பெயர் குறைந்தது 3 எழுத்துக்களைக் கொண்டிருக்க வேண்டும்." : "Name must be at least 3 characters.");
+            return;
+        }
+
+        // Phone validation (10 digits starting with 6,7,8,9)
+        const phoneRegex = /^[6789]\d{9}$/;
+        if (!phone || !phoneRegex.test(phone)) {
+            alert(language === 'ta' ? "சரியான 10 இலக்க போன் எண்ணை உள்ளிடவும் (e.g. 9876543210)." : "Please enter a valid 10-digit mobile number starting with 6-9.");
+            return;
+        }
+
+        // Captcha validation
+        if (parseInt(captchaInput) !== (captchaNum1 + captchaNum2)) {
+            alert(language === 'ta' ? "பாதுகாப்பு விடை தவறானது. மீண்டும் முயற்சிக்கவும்." : "Incorrect security response. Please try again.");
+            return;
+        }
+
         if (!complaintMsg) {
             alert("புகார் செய்தியை உள்ளிடவும்.");
             return;
@@ -2476,8 +2573,8 @@ function HelpDeskPage({ t, language, db, saveState }) {
         const submitComplaint = (imgUrl) => {
             const newComplaint = {
                 id: "comp_" + Date.now(),
-                name: name || "அநாமதேயர் (Anonymous)",
-                phone: phone || "அநாமதேயர்",
+                name: name,
+                phone: phone,
                 category,
                 message: complaintMsg,
                 imageUrl: imgUrl || "",
@@ -2494,6 +2591,12 @@ function HelpDeskPage({ t, language, db, saveState }) {
             setComplaintMsg("");
             setImageFile(null);
             setBase64Img("");
+            
+            // Regenerate captcha
+            setCaptchaNum1(Math.floor(Math.random() * 9) + 1);
+            setCaptchaNum2(Math.floor(Math.random() * 9) + 1);
+            setCaptchaInput("");
+            
             setStatusMsg("உங்களது புகார் பதிவு செய்யப்பட்டது. இது முற்றிலும் தனிப்பட்ட முறையில் நிர்வாகிக்கு மட்டுமே பகிரப்படும்.");
             setTimeout(() => setStatusMsg(""), 5000);
         };
@@ -2559,9 +2662,10 @@ function HelpDeskPage({ t, language, db, saveState }) {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-slate-300 font-tamil text-xs mb-1.5">தங்கள் பெயர் (Name)</label>
+                                <label className="block text-slate-300 font-tamil text-xs mb-1.5">தங்கள் பெயர் (Name) *</label>
                                 <input
                                     type="text"
+                                    required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold font-tamil"
@@ -2569,9 +2673,10 @@ function HelpDeskPage({ t, language, db, saveState }) {
                                 />
                             </div>
                             <div>
-                                <label className="block text-slate-300 font-tamil text-xs mb-1.5">போன் எண் (Mobile)</label>
+                                <label className="block text-slate-300 font-tamil text-xs mb-1.5">போன் எண் (Mobile) *</label>
                                 <input
                                     type="tel"
+                                    required
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                     className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold"
@@ -2614,6 +2719,20 @@ function HelpDeskPage({ t, language, db, saveState }) {
                                 accept="image/*"
                                 onChange={handleFileChange}
                                 className="w-full bg-stone border border-gold/30 rounded p-2 text-slate-400 text-xs focus:outline-none focus:border-gold"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 font-tamil text-xs mb-1.5">
+                                {language === 'ta' ? `பாதுகாப்பு கேள்வி: ${captchaNum1} + ${captchaNum2} = ? *` : `Security Question: ${captchaNum1} + ${captchaNum2} = ? *`}
+                            </label>
+                            <input
+                                type="number"
+                                required
+                                value={captchaInput}
+                                onChange={(e) => setCaptchaInput(e.target.value)}
+                                className="w-full bg-stone border border-gold/30 rounded p-2.5 text-slate-200 focus:outline-none focus:border-gold"
+                                placeholder={language === 'ta' ? "பாதுகாப்பு விடையை உள்ளிடவும்" : "Enter security response"}
                             />
                         </div>
 
